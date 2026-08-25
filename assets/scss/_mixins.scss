@@ -1,0 +1,35 @@
+@use "sass:map";
+// Add any custom mixins here
+@use "sass:math";
+// Responsive queries
+// A map of breakpoints.
+$breakpoints: (
+        xs: 400px,
+        sm: 576px,
+        mm: 768px,
+        md: 898px,
+        lg: 1200px,
+        xxl: 1441px,
+        2xl: 1800px
+);
+
+$breakpoint: map.get($breakpoints, sm);
+
+// Respond above.
+@mixin respond($breakpoint) {
+  // If the breakpoint exists in the map.
+  @if map-has-key($breakpoints, $breakpoint) {
+    // Get the breakpoint value.
+    $breakpoint-value: map-get($breakpoints, $breakpoint);
+
+    // Write the media query.
+    @media (min-width: $breakpoint-value) {
+      @content;
+    }
+
+    // If the breakpoint doesn't exist in the map.
+  } @else {
+    // Log a warning.
+    @warn 'Invalid breakpoint: #{$breakpoint}.';
+  }
+}

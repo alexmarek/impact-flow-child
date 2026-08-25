@@ -1,0 +1,4 @@
+<style>
+/* Critical CSS */
+
+</style>
