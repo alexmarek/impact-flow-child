@@ -35,7 +35,11 @@ This repo is a **template**. After cloning it for a client, replace `APP-NAME` i
 npm install
 ```
 
-Set `localURL` in `vite.config.js` to your local WordPress URL (e.g. `http://impact-flow-child.local`).
+Create `.env.local` with your local WordPress URL:
+
+```
+IMPACTFLOW_LOCAL_URL=http://impact-flow-child.local
+```
 
 Activate the child theme in **Appearance → Themes** — it declares `Template: impact-flow`, which makes WordPress automatically fall back to the parent for any file that isn't overridden here.
 
@@ -45,7 +49,37 @@ Activate the child theme in **Appearance → Themes** — it declares `Template:
 
 | Command | Description |
 |---|---|
-| `npm run dev` | Vite dev server with BrowserSync + HMR |
+| `npm run dev` | Vite dev server on `127.0.0.1:5174` with HMR |
+| `npm run prod` | Production build into `dist/` |
+| `npm run preview` | Serve the production build |
+
+## Development workflow
+
+The child has its own Vite dev server (port 5174) running alongside the parent's (port 5173). For HMR to work:
+
+1. Start the parent: `cd ../impact-flow && npm run dev`
+2. Start the child: `cd . && npm run dev` (in a second terminal)
+3. Open the site with `?vite_dev=1` appended to the URL — both servers' `@vite/client` and entrypoints get enqueued
+
+If `localhost:5173` shows the WordPress site instead of the Vite dev server, your `.env.local` is missing or the proxy isn't matching. See the parent theme's `readme.md` for the full troubleshooting table.
+
+### Per-developer env vars (in `.env.local`)
+
+| Var | Default | Purpose |
+|---|---|---|
+| `IMPACTFLOW_LOCAL_URL` | `https://testing.local` | WordPress upstream the dev proxy targets |
+| `IMPACTFLOW_VITE_PORT` | `5174` | Port the Vite dev server binds |
+| `IMPACTFLOW_VITE_HOST_BIND` | `127.0.0.1` | IPv4 loopback only — Local by Flywheel's proxy defaults to IPv4 |
+
+`.env.local` is gitignored — different per developer, never committed.
+
+---
+
+## Scripts
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Vite dev server on `127.0.0.1:5174` with HMR |
 | `npm run prod` | Production build into `dist/` |
 | `npm run preview` | Serve the production build |
 
