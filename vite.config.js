@@ -60,18 +60,27 @@ export default {
         ? '/'
         : '/dist/',
 
-    // Dev defaults — explicit so a future config edit doesn't accidentally
-    // enable minification in `vite dev`. The parent theme runs on 5173 by
-    // default; child uses 5174 so both can run simultaneously.
+    // Dev defaults — explicit so a future config edit doesn't
+    // accidentally enable minification in `vite dev`. The parent theme
+    // runs on 5173 by default; child uses 5174 (see child config) so
+    // both can run simultaneously.
+    //
+    // strictPort: true so the dev server fails loud if the configured
+    // port is taken (Local by Flywheel sometimes intercepts common
+    // dev ports; the user can reconfigure via IMPACTFLOW_VITE_PORT).
     server: {
-        port: 5174,
-        strictPort: false,
+        port: parseInt(process.env.IMPACTFLOW_VITE_PORT || '5174', 10),
+        strictPort: true,
+        // Bind to 127.0.0.1 (IPv4 loopback only) so the dev server
+        // is reachable via http://127.0.0.1:<port>. See the parent
+        // config for the full rationale.
+        host: process.env.IMPACTFLOW_VITE_HOST_BIND || '127.0.0.1',
         open: false,
         cors: true,
-        host: true,
         hmr: { overlay: true },
         proxy: {
-            '/': {
+            // See parent config for the regex allowlist — same pattern.
+            '^(?!/(@vite|node_modules|__open-in-editor|@id|@fs)($|/)|/child-theme(\\.js|\\.css)($|\\?))': {
                 target: localURL,
                 changeOrigin: true,
                 secure: false,
