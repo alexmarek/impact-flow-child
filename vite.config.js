@@ -80,7 +80,9 @@ export default {
         hmr: { overlay: true },
         proxy: {
             // See parent config for the regex allowlist — same pattern.
-            '^(?!/(@vite|node_modules|__open-in-editor|@id|@fs)($|/)|/child-theme(\\.js|\\.css)($|\\?))': {
+            // Excludes /assets/scss/ so SCSS files reach Vite's PostCSS
+            // pipeline, not the upstream WP site.
+            '^(?!/(@vite|node_modules|__open-in-editor|@id|@fs)($|/)|/child-theme(\\.js|\\.css)($|\\?)|/assets/scss/)': {
                 target: localURL,
                 changeOrigin: true,
                 secure: false,
