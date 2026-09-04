@@ -1,13 +1,35 @@
-import path from 'path';
-import {fileURLToPath} from 'url';
+import {readFileSync, existsSync} from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 import { reloadOnChange } from '../impact-flow/assets/vite-plugins/reload-on-change.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * Local WordPress URL for the dev server proxy and HMR origin.
- * Override per-developer via a .env.local or by editing this value directly.
+ * Loaded from .env.local / .env so each developer can override without
+ * editing source. See the parent's vite.config.js for the loader
+ * implementation — the same logic is duplicated here because Vite
+ * configs can't share code (they're each entry points).
  */
+function loadEnvFile(filePath) {
+    if (!existsSync(filePath)) return;
+    for (const line of readFileSync(filePath, 'utf-8').split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const eq = trimmed.indexOf('=');
+        if (eq === -1) continue;
+        const key = trimmed.slice(0, eq).trim();
+        const value = trimmed.slice(eq + 1).trim();
+        if (process.env[key] === undefined) {
+            process.env[key] = value;
+        }
+    }
+}
+
+loadEnvFile(path.join(__dirname, '.env.local'));
+loadEnvFile(path.join(__dirname, '.env'));
+
 const localURL = process.env.IMPACTFLOW_LOCAL_URL || 'https://testing.local';
 
 /**
