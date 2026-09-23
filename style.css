@@ -1,9 +1,17 @@
 /*
- Theme Name:   ImpactFlow Child
- Theme URI:    http://impactflow.theme/
- Description:  Child theme for ImpactFlow.
+ Theme Name:   Impact Flow Portfolio
+ Theme URI:    https://impact-flow.infinityseeker.com/
+ Description:  Alex Marek's portfolio and service website, built on ImpactFlow.
  Author:       Alex Marek (Infinity Seeker)
- Template:     impact-flow
- Version:      1.0.0
- Text Domain:  impact-flow-child
+ Author URI:   https://infinityseeker.com/
+ Template:     impact-flow-theme
+ Version:      1.5.1
+ Text Domain:  impact-flow-portfolio
 */
+
+/*
+ * Portfolio-only presentation lives in assets/css/portfolio-home.css and is
+ * loaded on both the frontend and in Gutenberg. The homepage pattern retains
+ * the parent pattern class API while its child modifier classes reproduce the
+ * approved portfolio design.
+ */

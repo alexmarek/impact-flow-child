@@ -1,16 +1,28 @@
-# ImpactFlow — Child Theme
+# Impact Flow — Portfolio child theme
 
-Boilerplate for client-specific child themes built on top of the **[ImpactFlow parent theme](../impact-flow)**.
+The WordPress child theme for Alex Marek's Impact Flow services and portfolio
+site. It runs on the shared
+[ImpactFlow parent theme](https://github.com/alexmarek/impact-flow-theme) and
+currently pins parent release `v2.2.0-alpha.18` in
+[`.impact-flow-parent-version`](.impact-flow-parent-version).
 
 Maintained by **[Alex Marek — Infinity Seeker](https://github.com/alexmarek)**.
 
 ---
 
-## What this is for
+## Homepage architecture
 
-The child theme layers per-client logo overrides, brand colours, and any custom CSS/JS on top of the parent theme. The parent provides the entire block system, templates, and design tokens — you only need to override what actually differs per client.
+The approved homepage design is retained in
+[`assets/design/2026-09-20-impact-flow-homepage-v2-1.html`](assets/design/2026-09-20-impact-flow-homepage-v2-1.html).
+[`tools/2026-09-23-build-homepage.php`](tools/2026-09-23-build-homepage.php)
+converts its nine sections into core blocks and child variants of the parent
+theme's patterns. The generated section patterns and complete homepage are in
+[`patterns/`](patterns/); their shared editor and frontend presentation is in
+[`assets/css/portfolio-home.css`](assets/css/portfolio-home.css).
 
-This repo is a **template**. After cloning it for a client, replace `APP-NAME` in `.github/workflows/deploy.yaml` with the target Hostinger application name, and add the GitHub repository secrets listed below.
+WordPress stores inserted pattern content in the database. Deploying this
+repository updates the pattern definitions, templates and presentation, but it
+does not replace an existing page's saved blocks or Site Editor overrides.
 
 ---
 
@@ -25,7 +37,7 @@ This repo is a **template**. After cloning it for a client, replace `APP-NAME` i
 ## Requirements
 
 - Node `^24.9.0`, npm `^11.6.1`
-- The `impact-flow` parent theme installed and active in the same WordPress
+- The `impact-flow-theme` parent directory installed alongside this child
 
 ---
 
@@ -38,10 +50,11 @@ npm install
 Create `.env.local` with your local WordPress URL:
 
 ```
-IMPACTFLOW_LOCAL_URL=http://impact-flow-child.local
+IMPACTFLOW_LOCAL_URL=http://impact-flow.local
 ```
 
-Activate the child theme in **Appearance → Themes** — it declares `Template: impact-flow`, which makes WordPress automatically fall back to the parent for any file that isn't overridden here.
+Activate **Impact Flow Portfolio** in **Appearance → Themes**. Its
+`Template: impact-flow-theme` header must match the parent directory exactly.
 
 ---
 
@@ -73,21 +86,12 @@ If `localhost:5173` shows the WordPress site instead of the Vite dev server, you
 
 `.env.local` is gitignored — different per developer, never committed.
 
----
-
-## Scripts
-
-| Command | Description |
-|---|---|
-| `npm run dev` | Vite dev server on `127.0.0.1:5174` with HMR |
-| `npm run prod` | Production build into `dist/` |
-| `npm run preview` | Serve the production build |
-
----
-
 ## Asset loading
 
-`npm run prod` writes the build to `dist/` and emits `dist/.vite/manifest.json`. `includes/vite-config-child-theme.php` reads that manifest on `wp_enqueue_scripts` and enqueues the child CSS/JS, declaring the parent handles `app-parent-style-build` and `app-parent-script-main` as dependencies — so the parent styles load first.
+`npm run prod` writes the Vite build to `dist/` and emits
+`dist/.vite/manifest.json`. The portfolio homepage stylesheet is generated
+separately and loaded directly by `functions.php` on both the frontend and in
+Gutenberg so both views use the same presentation.
 
 `dist/` is build output and is git-ignored — never commit it.
 
@@ -97,45 +101,59 @@ If `localhost:5173` shows the WordPress site instead of the Vite dev server, you
 
 ```
 impact-flow-child/
-├── assets/
-│   ├── js/          Brand-specific JS (entry: child-theme.js)
-│   └── scss/        Brand-specific styles (entry: child-theme-styles.scss)
-├── dist/             Build output (git-ignored)
-├── includes/
-│   └── vite-config-child-theme.php    Vite enqueue helper
-├── .github/workflows/deploy.yaml       Hostinger deployment
-├── child-theme.js    Vite JS entry
-├── functions.php     Just includes vite-config-child-theme.php
-├── style.css         Theme metadata header (Template: impact-flow)
-├── package.json
-├── postcss.config.cjs
-└── vite.config.js
+├── assets/css/portfolio-home.css       Generated editor/frontend presentation
+├── assets/design/                      Approved design sources
+├── patterns/                           Homepage and nine section variants
+├── parts/ and templates/               Header, footer and front-page shell
+├── tools/2026-09-23-build-homepage.php Pattern and CSS generator
+├── .github/workflows/                  Validation and staging deployment
+├── .impact-flow-parent-version         Immutable parent release pin
+├── functions.php                       Portfolio asset registration
+├── style.css                            Theme metadata
+└── theme.json                           Child theme settings
 ```
 
 ---
 
-## Customising for a client
+## Working on the homepage
 
-1. Replace the logo files referenced by the parent theme settings (configured in **Appearance → ImpactFlow Settings → Branding**).
-2. Add per-client brand variables or extra CSS in `assets/scss/`.
-3. Add any client-specific JS in `assets/js/` and import it from `child-theme.js`.
-4. Configure the deployment secrets in GitHub.
+Edit the approved design source, then run the homepage builder. Use `--apply`
+only in the Local WordPress installation when the generated block tree should
+replace its configured static front page. Keep released parent pattern
+structures stable; add portfolio-specific variants in this child.
 
 ---
 
 ## Deployment
 
-`.github/workflows/deploy.yaml` has two jobs:
+Every push and pull request runs
+[`deploy.yaml`](.github/workflows/deploy.yaml) to install dependencies, build
+the Vite bundle, lint theme PHP and confirm that generated homepage files match
+their source. It does not deploy automatically.
 
-1. **deploy** — builds, then rsyncs over SSH to the configured Hostinger target.
-2. **sync_staging** — merges `main` into `staging` after a successful production deploy.
+Running the workflow manually with `confirm_deploy` enabled deploys the pinned
+parent and this child to the selected `staging` or `production` GitHub
+environment. Each environment supplies its own `SITE_PATH` and `SITE_URL`
+variables. The known staging target is:
+
+- `https://lightskyblue-skunk-164969.hostingersite.com/`
+- `/home/u764292843/domains/lightskyblue-skunk-164969.hostingersite.com/public_html`
 
 Required repository secrets:
 
-- `HOSTINGER_SSH_HOST`
-- `HOSTINGER_SSH_USER`
-- `HOSTINGER_SSH_KEY` (private key)
-- `HOSTINGER_TARGET_PATH` (e.g. `/home/user/public_html/wp-content/themes/impact-flow-child/`)
+- `SSH_PRIVATE_KEY` — the shared Hostinger deployment key used across Alex's sites
+- `PARENT_REPO_PAT` — fine-grained token with read access to the private parent repository
+
+The shared secrets are entered once in this repository. Environment variables
+select the destination, while GitHub environment protection rules provide the
+staging or production approval gate.
+
+The workflow deploys theme files only. It does not migrate the WordPress
+database, media, navigation, plugins, WooCommerce settings, forms or Site
+Editor records. Configure the production environment only after its document
+root has been confirmed. See
+[`docs/2026-09-23-hostinger-staging-deployment.md`](docs/2026-09-23-hostinger-staging-deployment.md)
+for setup and the first staging release sequence.
 
 ---
 

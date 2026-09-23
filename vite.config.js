@@ -1,7 +1,7 @@
 import {readFileSync, existsSync} from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import { reloadOnChange } from '../impact-flow/assets/vite-plugins/reload-on-change.js';
+import liveReload from 'vite-plugin-live-reload';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -37,9 +37,8 @@ const localURL = process.env.IMPACTFLOW_LOCAL_URL || 'https://testing.local';
  * SCSS / JS automatically). Twig templates and dist/ output are PHP-rendered
  * so they need a reload, not a module swap.
  *
- * The parent theme's reloadOnChange plugin lives at
- * ../../impact-flow/assets/vite-plugins/reload-on-change.js
- * — imported via relative path so we don't duplicate the watcher logic.
+ * The child owns this watcher so CI and standalone child checkouts do not
+ * depend on a sibling copy of the parent repository.
  */
 const reloadPatterns = [
     '*.php',
@@ -52,7 +51,7 @@ const reloadPatterns = [
 // https://vitejs.dev/config
 export default {
     plugins: [
-        reloadOnChange(reloadPatterns),
+        liveReload(reloadPatterns, {root: process.cwd()}),
     ],
 
     root: '',

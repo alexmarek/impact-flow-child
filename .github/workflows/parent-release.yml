@@ -1,0 +1,117 @@
+name: Prepare parent theme update
+
+on:
+  repository_dispatch:
+    types: [parent-theme-released]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  prepare-update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Validate parent release
+        id: release
+        env:
+          PARENT_REF: ${{ github.event.client_payload.parent_ref }}
+          PARENT_SHA: ${{ github.event.client_payload.parent_sha }}
+        run: |
+          if [[ ! "$PARENT_REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::The parent release payload did not contain a semantic-version tag."
+            exit 1
+          fi
+
+          if [[ ! "$PARENT_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::The parent release payload did not contain a full commit SHA."
+            exit 1
+          fi
+
+          branch="automation/parent-${PARENT_REF}"
+          echo "ref=$PARENT_REF" >> "$GITHUB_OUTPUT"
+          echo "sha=$PARENT_SHA" >> "$GITHUB_OUTPUT"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+
+      - name: Check out the declared parent release
+        uses: actions/checkout@v5
+        with:
+          repository: alexmarek/impact-flow-theme
+          ref: ${{ steps.release.outputs.ref }}
+          token: ${{ secrets.PARENT_REPO_PAT }}
+          path: parent-release-check
+
+      - name: Verify the declared parent release
+        env:
+          PARENT_SHA: ${{ steps.release.outputs.sha }}
+        run: |
+          actual_sha="$(git -C parent-release-check rev-parse HEAD)"
+          if [ "$actual_sha" != "$PARENT_SHA" ]; then
+            echo "::error::The parent tag resolved to ${actual_sha}, expected ${PARENT_SHA}."
+            exit 1
+          fi
+
+      - name: Check whether this release is already prepared
+        id: existing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.release.outputs.branch }}
+          PARENT_REF: ${{ steps.release.outputs.ref }}
+          PARENT_SHA: ${{ steps.release.outputs.sha }}
+        run: |
+          git fetch origin main:refs/remotes/origin/main
+          current="$(git show origin/main:.impact-flow-parent-version | sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*$/d' | head -n 1)"
+          if [ "$current" = "$PARENT_REF $PARENT_SHA" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          existing_pr="$(gh pr list --state all --head "$BRANCH" --json number --jq '.[0].number // empty')"
+          if [ -n "$existing_pr" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null; then
+            git fetch origin "refs/heads/$BRANCH"
+            branch_pin="$(git show FETCH_HEAD:.impact-flow-parent-version | sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*$/d' | head -n 1)"
+            if [ "$branch_pin" != "$PARENT_REF $PARENT_SHA" ]; then
+              echo "::error::Existing branch $BRANCH contains a different parent pin."
+              exit 1
+            fi
+            echo "branch_exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "branch_exists=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Commit the parent pin
+        if: steps.existing.outputs.skip != 'true' && steps.existing.outputs.branch_exists != 'true'
+        env:
+          BRANCH: ${{ steps.release.outputs.branch }}
+          PARENT_REF: ${{ steps.release.outputs.ref }}
+          PARENT_SHA: ${{ steps.release.outputs.sha }}
+        run: |
+          git switch -c "$BRANCH" origin/main
+          printf '# Parent theme release used by this site.\n%s %s\n' "$PARENT_REF" "$PARENT_SHA" > .impact-flow-parent-version
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .impact-flow-parent-version
+          git commit -m "Prepare parent theme ${PARENT_REF}"
+          git push --set-upstream origin "$BRANCH"
+
+      - name: Open the parent update pull request
+        if: steps.existing.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.release.outputs.branch }}
+          PARENT_REF: ${{ steps.release.outputs.ref }}
+          PARENT_SHA: ${{ steps.release.outputs.sha }}
+        run: |
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "Update parent theme to ${PARENT_REF}" \
+            --body "Pins ImpactFlow parent theme ${PARENT_REF} at commit ${PARENT_SHA}. Merging this pull request validates the child theme; the staging deployment remains a separate manual workflow run."

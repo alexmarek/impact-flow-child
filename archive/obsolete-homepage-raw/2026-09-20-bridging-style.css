@@ -1,0 +1,48 @@
+/*
+ * ARCHIVE — not loaded. Reference only.
+ *
+ * These rules were in the child `style.css` at v1.3.0, when the homepage was
+ * rendered by `archive/2026-09-20-front-page.php` from the approved design
+ * markup stored in `archive/obsolete-homepage-raw/`.
+ *
+ * They bridge core-block output to the approved design's bespoke CSS:
+ *  - WordPress injects a block-gap margin on `is-layout-flow` /
+ *    `is-layout-constrained` containers (`:root :where(...) > *`), which the
+ *    design does not expect. The first rule neutralises it.
+ *  - The design renders the pricing `.amount` / `.term` as <div>s, so
+ *    `.price-card > p` normally outranks them; as paragraphs they need the
+ *    values restated at higher specificity.
+ *  - The pricing call-to-action is wrapped in a paragraph by the block editor;
+ *    keep that wrapper neutral so the button renders correctly.
+ *
+ * If the approved design is restored as the homepage, re-add these to
+ * `style.css` (or an enqueued stylesheet). `body.impact-flow-portfolio` was the
+ * body class set by the archived `front-page.php`.
+ */
+
+body.impact-flow-portfolio :where(.wp-block-group-is-layout-flow) > *,
+body.impact-flow-portfolio :where(.wp-block-group-is-layout-constrained) > * {
+	margin-block-start: 0;
+	margin-block-end: 0;
+}
+
+body.impact-flow-portfolio .price-card > p.amount {
+	font: 400 clamp(38px, 4vw, 52px)/1 var(--display);
+	letter-spacing: -0.05em;
+	color: var(--blue);
+	margin-bottom: 6px;
+}
+
+body.impact-flow-portfolio .price-card > p.term {
+	font-size: 13px;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--muted);
+	margin-bottom: 18px;
+}
+
+body.impact-flow-portfolio .price-foot > p.price-cta {
+	font-size: 16px;
+	color: inherit;
+	max-width: none;
+}

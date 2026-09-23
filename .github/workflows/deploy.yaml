@@ -1,70 +1,214 @@
-name: Deploy
+name: Validate and deploy to Hostinger
+
+# Pushes validate the child theme and produce its Vite build. A staging
+# deployment only happens when this workflow is run manually in GitHub and
+# names either the staging or production environment.
 
 on:
   push:
     branches:
       - main
+  pull_request:
   workflow_dispatch:
+    inputs:
+      target:
+        description: Hostinger environment to deploy
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+      confirm_deploy:
+        description: Deploy the validated parent and child themes
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  SSH_HOST: 195.35.49.54
+  SSH_USER: u764292843
+  SSH_PORT: 65002
 
 jobs:
-  deploy:
-    name: Deploy to Hostinger
+  validate:
+    name: Validate and build child theme
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out this child theme
+        uses: actions/checkout@v5
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version-file: package.json
+          node-version: 24
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
+      - name: Build production assets
         run: npm run prod
 
-      - name: Deploy to Hostinger (placeholder)
+      - name: Validate PHP syntax
         run: |
-          # TODO: Configure per-client Hostinger deployment.
-          # Replace APP-NAME in the target path and add the required secrets
-          # (HOSTINGER_SSH_HOST, HOSTINGER_SSH_USER, HOSTINGER_SSH_KEY).
-          echo "Deploy target not configured. Set secrets to enable."
-        env:
-          TARGET: ${{ secrets.HOSTINGER_TARGET_PATH }}
+          find . -type f -name '*.php' \
+            -not -path './archive/*' \
+            -not -path './tools/*' \
+            -print0 | xargs -0 -n1 php -l
 
-      # - name: Deploy via rsync
-      #   run: |
-      #     mkdir -p ~/.ssh
-      #     echo "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/deploy_key
-      #     chmod 600 ~/.ssh/deploy_key
-      #     rsync -rlz --delete \
-      #       --no-perms --no-times \
-      #       --exclude ".git/" \
-      #       --exclude ".github/" \
-      #       --exclude "node_modules/" \
-      #       --exclude ".gitignore" \
-      #       --exclude "package.json" \
-      #       --exclude "package-lock.json" \
-      #       --exclude "vite.config.js" \
-      #       --exclude "*.map" \
-      #       -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
-      #       ./ "${{ secrets.HOSTINGER_SSH_USER }}@${{ secrets.HOSTINGER_SSH_HOST }}:${{ secrets.HOSTINGER_TARGET_PATH }}"
+      - name: Confirm generated homepage files are current
+        run: |
+          php tools/2026-09-23-build-homepage.php
+          git diff --exit-code -- assets/css/portfolio-home.css patterns/
 
-  sync_staging:
-    name: Back-merge to staging
-    needs: deploy
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      - name: Upload production build
+        uses: actions/upload-artifact@v4
         with:
-          fetch-depth: 0
+          name: impact-flow-child-dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
 
-      - name: Merge main into staging
+  deploy:
+    name: Deploy parent and child themes to ${{ inputs.target }}
+    needs: validate
+    if: github.event_name == 'workflow_dispatch' && inputs.confirm_deploy
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.target }}
+    concurrency:
+      group: impact-flow-hostinger-${{ inputs.target }}
+      cancel-in-progress: false
+    env:
+      SITE_PATH: ${{ vars.SITE_PATH }}
+      SITE_URL: ${{ vars.SITE_URL }}
+    steps:
+      - name: Check out this child theme
+        uses: actions/checkout@v5
+        with:
+          path: child
+
+      - name: Restore production build
+        uses: actions/download-artifact@v5
+        with:
+          name: impact-flow-child-dist
+          path: child/dist
+
+      - name: Read immutable parent release pin
+        id: parent
         run: |
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "GitHub Actions"
-          git fetch origin staging:staging
-          git checkout staging
-          git merge origin/main --no-edit
-          git push origin staging
+          pin="$(sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*$/d' child/.impact-flow-parent-version | head -n 1)"
+          read -r parent_ref parent_sha extra <<< "$pin"
+
+          if [[ ! "$parent_ref" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::.impact-flow-parent-version must start with an immutable semantic-version tag."
+            exit 1
+          fi
+
+          if [[ ! "$parent_sha" =~ ^[0-9a-f]{40}$ ]] || [ -n "${extra:-}" ]; then
+            echo "::error::.impact-flow-parent-version must contain exactly: <parent-tag> <40-character-commit-SHA>."
+            exit 1
+          fi
+
+          echo "ref=$parent_ref" >> "$GITHUB_OUTPUT"
+          echo "sha=$parent_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Check out the pinned parent theme
+        uses: actions/checkout@v5
+        with:
+          repository: alexmarek/impact-flow-theme
+          ref: ${{ steps.parent.outputs.ref }}
+          token: ${{ secrets.PARENT_REPO_PAT }}
+          path: parent
+
+      - name: Verify checked-out parent release
+        env:
+          EXPECTED_REF: ${{ steps.parent.outputs.ref }}
+          EXPECTED_SHA: ${{ steps.parent.outputs.sha }}
+        run: |
+          actual_sha="$(git -C parent rev-parse HEAD)"
+          echo "Deploying parent ${EXPECTED_REF} (${actual_sha})."
+
+          if [ "$actual_sha" != "$EXPECTED_SHA" ]; then
+            echo "::error::Parent tag ${EXPECTED_REF} resolved to ${actual_sha}, expected ${EXPECTED_SHA}."
+            exit 1
+          fi
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
+
+      - name: Validate deployment target
+        run: |
+          if [ -z "$SITE_PATH" ] || [ -z "$SITE_URL" ]; then
+            echo "::error::The ${{ inputs.target }} environment must define SITE_PATH and SITE_URL variables."
+            exit 1
+          fi
+
+          case "$SITE_PATH" in
+            /home/u764292843/domains/*/public_html)
+              ;;
+            *)
+              echo "::error::Refusing unexpected Hostinger document root: $SITE_PATH"
+              exit 1
+              ;;
+          esac
+
+      - name: Confirm remote document root
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" "test -d '$SITE_PATH/wp-content/themes'"
+
+      - name: Deploy the parent theme
+        run: |
+          rsync -az --delete \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='.gitignore' \
+            --exclude='client-repos.json' \
+            --exclude='tests/' \
+            --exclude='docs/' \
+            --exclude='README.md' \
+            --exclude='screenshot.png' \
+            -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT -o StrictHostKeyChecking=yes" \
+            parent/ "$SSH_USER@$SSH_HOST:$SITE_PATH/wp-content/themes/impact-flow-theme/"
+
+      - name: Deploy this child theme
+        run: |
+          rsync -az --delete \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='.gitignore' \
+            --exclude='.impact-flow-parent-version' \
+            --exclude='AGENTS.md' \
+            --exclude='archive/' \
+            --exclude='docs/' \
+            --exclude='tools/' \
+            --exclude='assets/design/' \
+            --exclude='assets/scss/' \
+            --exclude='node_modules/' \
+            --exclude='package.json' \
+            --exclude='package-lock.json' \
+            --exclude='postcss.config.cjs' \
+            --exclude='vite.config.js' \
+            --exclude='child-theme.js' \
+            -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT -o StrictHostKeyChecking=yes" \
+            child/ "$SSH_USER@$SSH_HOST:$SITE_PATH/wp-content/themes/impact-flow-child/"
+
+      - name: Verify the deployment
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" \
+            "test -f '$SITE_PATH/wp-content/themes/impact-flow-theme/style.css' && \
+             test -f '$SITE_PATH/wp-content/themes/impact-flow-child/style.css' && \
+             test -f '$SITE_PATH/wp-content/themes/impact-flow-child/assets/css/portfolio-home.css'"
+
+          curl --fail --silent --show-error --location \
+            --retry 4 --retry-all-errors --max-time 30 "$SITE_URL" >/dev/null
