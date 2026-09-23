@@ -151,7 +151,7 @@ The workflow deploys theme files only. It does not migrate the WordPress
 database, media, navigation, plugins, WooCommerce settings, forms or Site
 Editor records. A separate staging environment and workflow target can be added
 later without changing the production credentials. See
-[`docs/2026-09-23-hostinger-staging-deployment.md`](docs/2026-09-23-hostinger-staging-deployment.md)
+[`docs/2026-09-23-hostinger-production-deployment.md`](docs/2026-09-23-hostinger-production-deployment.md)
 for setup and the first production release sequence.
 
 ---
