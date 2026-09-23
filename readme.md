@@ -106,7 +106,7 @@ impact-flow-child/
 ├── patterns/                           Homepage and nine section variants
 ├── parts/ and templates/               Header, footer and front-page shell
 ├── tools/2026-09-23-build-homepage.php Pattern and CSS generator
-├── .github/workflows/                  Validation and staging deployment
+├── .github/workflows/                  Validation and production deployment
 ├── .impact-flow-parent-version         Immutable parent release pin
 ├── functions.php                       Portfolio asset registration
 ├── style.css                            Theme metadata
@@ -131,10 +131,10 @@ Every push and pull request runs
 the Vite bundle, lint theme PHP and confirm that generated homepage files match
 their source. It does not deploy automatically.
 
-Running the workflow manually with `confirm_deploy` enabled deploys the pinned
-parent and this child to the selected `staging` or `production` GitHub
-environment. Each environment supplies its own `SITE_PATH` and `SITE_URL`
-variables. The known staging target is:
+Running the workflow manually with `confirm_production` enabled deploys the
+pinned parent and this child to the `production` GitHub environment. That
+environment supplies the `SITE_PATH` and `SITE_URL` variables. The production
+target is currently:
 
 - `https://lightskyblue-skunk-164969.hostingersite.com/`
 - `/home/u764292843/domains/lightskyblue-skunk-164969.hostingersite.com/public_html`
@@ -144,16 +144,15 @@ Required repository secrets:
 - `SSH_PRIVATE_KEY` — the shared Hostinger deployment key used across Alex's sites
 - `PARENT_REPO_PAT` — fine-grained token with read access to the private parent repository
 
-The shared secrets are entered once in this repository. Environment variables
-select the destination, while GitHub environment protection rules provide the
-staging or production approval gate.
+The shared secrets are entered once in this repository. GitHub environment
+protection rules provide an optional production approval gate.
 
 The workflow deploys theme files only. It does not migrate the WordPress
 database, media, navigation, plugins, WooCommerce settings, forms or Site
-Editor records. Configure the production environment only after its document
-root has been confirmed. See
+Editor records. A separate staging environment and workflow target can be added
+later without changing the production credentials. See
 [`docs/2026-09-23-hostinger-staging-deployment.md`](docs/2026-09-23-hostinger-staging-deployment.md)
-for setup and the first staging release sequence.
+for setup and the first production release sequence.
 
 ---
 

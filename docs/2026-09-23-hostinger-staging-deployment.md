@@ -1,4 +1,4 @@
-# Hostinger staging deployment
+# Hostinger production deployment
 
 ## Target
 
@@ -30,17 +30,17 @@ Actions** in `alexmarek/impact-flow-child`:
 - `PARENT_REPO_PAT`: a fine-grained GitHub token restricted to
   `alexmarek/impact-flow-theme` with **Contents: read** permission.
 
-Create a GitHub environment named `staging` and add these non-secret
+Create a GitHub environment named `production` and add these non-secret
 environment variables:
 
 - `SITE_PATH`:
   `/home/u764292843/domains/lightskyblue-skunk-164969.hostingersite.com/public_html`
 - `SITE_URL`: `https://lightskyblue-skunk-164969.hostingersite.com/`
 
-Create a separate `production` environment when its domain and document root
-are ready, and add the corresponding `SITE_PATH` and `SITE_URL` variables.
-Both environments use the same repository secrets. Configure a required
-reviewer where the GitHub plan supports it.
+The `hostingersite.com` installation is the production site. When its custom
+domain is connected, update `SITE_URL`; update `SITE_PATH` only if Hostinger
+also changes the document root. Configure a required reviewer where the GitHub
+plan supports it.
 
 ## Workflow behaviour
 
@@ -55,21 +55,21 @@ Every push and pull request runs the `validate` job in
 5. stores the production `dist/` directory as a seven-day build artifact.
 
 No push deploys a website. To deploy, open **Actions → Validate and deploy to
-Hostinger → Run workflow**, choose `staging` or `production`, enable
-`confirm_deploy`, and run it from `main`.
+Hostinger → Run workflow**, enable `confirm_production`, and run it from
+`main`.
 
-The staging job verifies the pinned parent tag and commit, mirrors the parent
+The production job verifies the pinned parent tag and commit, mirrors the parent
 and child theme directories with `rsync --delete`, verifies the three required
-theme files over SSH, and requests the staging URL. Source designs, archives,
+theme files over SSH, and requests the production URL. Source designs, archives,
 builder tools, documentation and Node development files stay out of the hosted
 child theme.
 
-## First staging release
+## First production release
 
-1. Confirm WordPress is installed at the staging URL and that
+1. Confirm WordPress is installed at the production URL and that
    `wp-content/themes` exists. The workflow refuses to deploy if it does not.
 2. Add the two GitHub environment secrets.
-3. Run the manual staging deployment.
+3. Run the manual production deployment.
 4. In WordPress, activate **Impact Flow Portfolio**. Confirm that the parent is
    shown as `ImpactFlow` from the `impact-flow-theme` directory.
 5. Move the local WordPress content and settings separately. GitHub Actions
@@ -85,9 +85,9 @@ The complete homepage pattern is deployable source, but an existing page is a
 database record. Updating `patterns/homepage.php` will not rewrite blocks that
 have already been inserted into a staging or production page.
 
-## Production
+## Later staging environment
 
-The same workflow supports production, but only after the `production`
-environment has valid destination variables. Add those variables after the
-staging site has passed the release checks. Use a separate document root and
-an explicit approval gate. Do not reuse the staging path for production.
+Add staging when a separate testing installation exists. Give it its own
+GitHub environment, `SITE_PATH` and `SITE_URL`, then add a staging target to the
+manual workflow. It can reuse the same repository secrets because both sites
+belong to the same Hostinger SSH account.

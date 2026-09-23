@@ -1,8 +1,8 @@
 name: Validate and deploy to Hostinger
 
-# Pushes validate the child theme and produce its Vite build. A staging
-# deployment only happens when this workflow is run manually in GitHub and
-# names either the staging or production environment.
+# Pushes validate the child theme and produce its Vite build. A production
+# deployment only happens when this workflow is run manually in
+# GitHub and the confirmation input is enabled.
 
 on:
   push:
@@ -11,16 +11,8 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
-      target:
-        description: Hostinger environment to deploy
-        required: true
-        default: staging
-        type: choice
-        options:
-          - staging
-          - production
-      confirm_deploy:
-        description: Deploy the validated parent and child themes
+      confirm_production:
+        description: Deploy the validated parent and child themes to production
         required: true
         default: false
         type: boolean
@@ -74,14 +66,14 @@ jobs:
           retention-days: 7
 
   deploy:
-    name: Deploy parent and child themes to ${{ inputs.target }}
+    name: Deploy parent and child themes to production
     needs: validate
-    if: github.event_name == 'workflow_dispatch' && inputs.confirm_deploy
+    if: github.event_name == 'workflow_dispatch' && inputs.confirm_production
     runs-on: ubuntu-latest
     environment:
-      name: ${{ inputs.target }}
+      name: production
     concurrency:
-      group: impact-flow-hostinger-${{ inputs.target }}
+      group: impact-flow-hostinger-production
       cancel-in-progress: false
     env:
       SITE_PATH: ${{ vars.SITE_PATH }}
@@ -148,7 +140,7 @@ jobs:
       - name: Validate deployment target
         run: |
           if [ -z "$SITE_PATH" ] || [ -z "$SITE_URL" ]; then
-            echo "::error::The ${{ inputs.target }} environment must define SITE_PATH and SITE_URL variables."
+            echo "::error::The production environment must define SITE_PATH and SITE_URL variables."
             exit 1
           fi
 

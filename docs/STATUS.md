@@ -213,7 +213,6 @@ blocks that reproduces the design's markup exactly, plus the design CSS).
   section shell and pinned every homepage section to the approved white, blue,
   pale blue, sage, or deep background and the design's section spacing.
 - 2026-09-23 — Configured GitHub Actions to validate every push and manually
-  deploy the pinned parent plus this child to a selected Hostinger environment.
-  Staging and production share repository credentials but keep separate target
-  variables and approval gates. Both still need a separate WordPress
-  content/database migration.
+  deploy the pinned parent plus this child to the production Hostinger site.
+  Staging will be added later as a separate target. Theme deployment still
+  needs a separate WordPress content/database migration.
