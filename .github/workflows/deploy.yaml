@@ -109,6 +109,20 @@ jobs:
           echo "ref=$parent_ref" >> "$GITHUB_OUTPUT"
           echo "sha=$parent_sha" >> "$GITHUB_OUTPUT"
 
+      - name: Verify parent repository access
+        env:
+          GH_TOKEN: ${{ secrets.PARENT_REPO_PAT }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::PARENT_REPO_PAT is missing. Add it as a repository Actions secret in alexmarek/impact-flow-child."
+            exit 1
+          fi
+
+          if ! gh api repos/alexmarek/impact-flow-theme --silent; then
+            echo "::error::PARENT_REPO_PAT cannot read alexmarek/impact-flow-theme. Use a fine-grained personal access token with that repository selected and Contents set to Read-only."
+            exit 1
+          fi
+
       - name: Check out the pinned parent theme
         uses: actions/checkout@v5
         with:
