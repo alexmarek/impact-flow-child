@@ -35,6 +35,10 @@
 
 ## Current implementation (2026-09-23)
 
+- 2026-09-24 CI maintenance: pinned both child-repository workflows to
+  `ubuntu-24.04` and upgraded deploy artifact actions to
+  `upload-artifact@v6` / `download-artifact@v7` for Node.js 24. Theme assets
+  and production content are unchanged.
 - 2026-09-24 visual QA: removed the broad WordPress block margin reset that
   collapsed intended section spacing; scoped the parent capability hover,
   step connector, and text-card accent overrides to the portfolio homepage.

@@ -28,7 +28,7 @@ env:
 jobs:
   validate:
     name: Validate and build child theme
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out this child theme
         uses: actions/checkout@v5
@@ -58,7 +58,7 @@ jobs:
           git diff --exit-code -- assets/css/portfolio-home.css patterns/
 
       - name: Upload production build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: impact-flow-child-dist
           path: dist/
@@ -69,7 +69,7 @@ jobs:
     name: Deploy parent and child themes to production
     needs: validate
     if: github.event_name == 'workflow_dispatch' && inputs.confirm_production
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: production
     concurrency:
@@ -85,7 +85,7 @@ jobs:
           path: child
 
       - name: Restore production build
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v7
         with:
           name: impact-flow-child-dist
           path: child/dist
