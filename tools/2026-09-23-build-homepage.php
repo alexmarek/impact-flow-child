@@ -362,6 +362,10 @@ $bridge = <<<'CSS'
 
 
 /* WordPress block bridge: the design and editor share this presentation. */
+.if-portfolio-home {
+	--wp--style--block-gap: 0;
+}
+
 body.home .wp-site-blocks,
 body.home main,
 body.home .wp-block-post-content,
@@ -374,8 +378,7 @@ body.home .wp-block-post-content,
 
 body.home main > *,
 body.home .wp-block-post-content > *,
-.if-portfolio-home > *,
-.if-portfolio-home :where(.is-layout-flow, .is-layout-constrained) > * {
+.if-portfolio-home > * {
 	margin-block-start: 0;
 	margin-block-end: 0;
 }
@@ -522,6 +525,11 @@ body.home .wp-block-post-content > *,
 	margin: 0;
 }
 
+.if-portfolio-home .wp-block-button.open-guide {
+	border: 0;
+	padding: 0;
+}
+
 .if-portfolio-home .open-guide.wp-block-button__link {
 	background: none;
 	border: 0;
@@ -569,6 +577,10 @@ body.home .wp-block-post-content > *,
 	padding: 0 !important;
 }
 
+.if-portfolio-home .style-copy.if-card__body::before {
+	content: none;
+}
+
 .if-portfolio-home .work-row.if-card {
 	background: transparent !important;
 	border: 0 !important;
@@ -600,6 +612,17 @@ body.home .wp-block-post-content > *,
 
 .if-portfolio-home .cap-row.if-services-editorial__item::after {
 	display: none;
+}
+
+@media (hover: hover) {
+	.if-portfolio-home .cap-row.if-services-editorial__item:hover {
+		background: transparent;
+		padding-inline: 0;
+	}
+}
+
+.if-portfolio-home .step.if-steps__item::before {
+	content: none;
 }
 
 .editor-styles-wrapper .if-portfolio-home {

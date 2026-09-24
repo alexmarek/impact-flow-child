@@ -14,9 +14,9 @@
 
 | Field | Value |
 | --- | --- |
-| Updated | 2026-09-23 |
-| Child version | `1.5.0` |
-| Branch | `main` (child theme repo, **nothing committed this session**) |
+| Updated | 2026-09-24 |
+| Child version | `1.5.2` |
+| Branch | `main` (child theme repo) |
 | Parent release | `v2.2.0-alpha.18` (`0f34a6333e898f3de5dadc6ecd93583e8cfd2645`) |
 | Active theme | `impact-flow-child` on parent `impact-flow-theme` |
 | Canonical design | `assets/design/2026-09-20-impact-flow-homepage-v2-1.html` |
@@ -34,6 +34,13 @@
 - Refine homepage copy; set WooCommerce up for digital products.
 
 ## Current implementation (2026-09-23)
+
+- 2026-09-24 visual QA: removed the broad WordPress block margin reset that
+  collapsed intended section spacing; scoped the parent capability hover,
+  step connector, and text-card accent overrides to the portfolio homepage.
+  The style-guide link wrapper no longer draws a second underline. Local
+  frontend review confirms the capability hover stays legible and section
+  dividers sit below their content. Production theme deployment remains manual.
 
 - `patterns/homepage.php` is the complete editable composition. Nine matching
   `patterns/homepage-*.php` files expose the section variants individually.
