@@ -362,10 +362,6 @@ $bridge = <<<'CSS'
 
 
 /* WordPress block bridge: the design and editor share this presentation. */
-.if-portfolio-home {
-	--wp--style--block-gap: 0;
-}
-
 body.home .wp-site-blocks,
 body.home main,
 body.home .wp-block-post-content,
@@ -381,6 +377,21 @@ body.home .wp-block-post-content > *,
 .if-portfolio-home > * {
 	margin-block-start: 0;
 	margin-block-end: 0;
+}
+
+/* Flow block gaps remain on children when their wrapper becomes a CSS grid.
+ * Clear those gaps without removing the designed space between sections. */
+.if-portfolio-home :where(
+	.service-intro,
+	.service-promises,
+	.section-intro,
+	.style-grid,
+	.style-top,
+	.work-list,
+	.cap-list,
+	.process-head
+) > * {
+	margin-block: 0;
 }
 
 .if-portfolio-home .if-hero-contained,
@@ -592,6 +603,10 @@ body.home .wp-block-post-content > *,
 	gap: 24px 40px !important;
 	align-items: baseline;
 	padding: 26px 0 !important;
+}
+
+.if-portfolio-home .work-list > .work-row:last-child {
+	border-bottom: 0 !important;
 }
 
 .if-portfolio-home .price-grid.if-pricing-grid {
